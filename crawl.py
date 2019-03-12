@@ -25,7 +25,6 @@ def get_all_links(code):
 Discards elements that start with # (internal links or anchors)
 """
 def discard_internal_links(links):
-    num=0
     for i in range(0,len(links)-1):
         #print(links[i])
         link = links[i]
@@ -34,6 +33,7 @@ def discard_internal_links(links):
                 del links[i]
         except:
             print('Didnt find a value for zero char')
+            #TODO: Why are those appearing?????
         
     return links
 
@@ -47,10 +47,22 @@ def get_domain(site):
     return site
 
 
+def convert_domain_links(links,domain):
+    for i in range(0,len(links)-1):
+        link = links[i]
+        try:
+            if link[0]=='/':
+                links[i]=domain+link
+        except:
+            print('Didnt find a value for zero char')
+            #TODO: Why are those appearing?????
+        
+    return links
     
-print(get_domain("https://github.com/Draculinio/MultiCrawler"))
+domain=get_domain("https://github.com/Draculinio/MultiCrawler")
 code=get_html_code("https://github.com/Draculinio/MultiCrawler")
 
 links = get_all_links(code)
 links = discard_internal_links(links)
+links = convert_domain_links(links,domain)
 print(links)
