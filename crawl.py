@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
+import mysql.connector
 
 """
 Gets the HTML code of a URL
@@ -58,11 +59,31 @@ def convert_domain_links(links,domain):
             #TODO: Why are those appearing?????
         
     return links
+
+
+##DATABASE FUNCTIONS##
+def connector():
+    db_connection=mysql.connector.connect(
+        host='localhost',
+        user='generic_user',
+        password='generic_password',
+        database = 'multicrawler')
+    return db_connection
+
+def execute_query(db_connection,order):
+    cursor = db_connection.cursor()
+    cursor.execute(order)
     
-domain=get_domain("https://github.com/Draculinio/MultiCrawler")
-code=get_html_code("https://github.com/Draculinio/MultiCrawler")
+
+starting_domain = "https://github.com/Draculinio/MultiCrawler"
+domain=get_domain(starting_domain)
+code=get_html_code(starting_domain)
 
 links = get_all_links(code)
 links = discard_internal_links(links)
 links = convert_domain_links(links,domain)
 print(links)
+db_connection = connector()
+print(db_connection)
+execute_query(db_connection,"Select * from sites") #Just a generic query to see this working. Next is to do the insertions. That will go for day 4
+
