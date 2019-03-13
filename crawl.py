@@ -47,7 +47,9 @@ def get_domain(site):
     site = domain.scheme + '://'+domain.netloc
     return site
 
-
+"""
+TODO: Describir el método
+"""
 def convert_domain_links(links,domain):
     for i in range(0,len(links)-1):
         link = links[i]
@@ -70,9 +72,25 @@ def connector():
         database = 'multicrawler')
     return db_connection
 
-def execute_query(db_connection,order):
-    cursor = db_connection.cursor()
+"""
+Executes an SQL query
+"""
+def execute_query(db_connection,order,results=True,insertion=False):
+    cursor = db_connection.cursor(buffered=True)
     cursor.execute(order)
+    if insertion==True:
+        db_connection.commit()
+    if results==True:
+        return cursor.fetchall()
+
+"""
+Inserts sites into table if needed.
+"""
+def insert_sites(links,db_connection):
+    for i in range(0,len(links)-1):
+        site_existence_verification = execute_query(db_connection,"select count(*) from sites where site_url='"+links[i]+"'")
+        if site_existence_verification[0][0]==0:
+            execute_query(db_connection,"insert into sites (site_url,used) values ('"+links[i]+"',false)",False,True)
     
 
 starting_domain = "https://github.com/Draculinio/MultiCrawler"
@@ -84,6 +102,4 @@ links = discard_internal_links(links)
 links = convert_domain_links(links,domain)
 print(links)
 db_connection = connector()
-print(db_connection)
-execute_query(db_connection,"Select * from sites") #Just a generic query to see this working. Next is to do the insertions. That will go for day 4
-
+insert_sites(links,db_connection)
