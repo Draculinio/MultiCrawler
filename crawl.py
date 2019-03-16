@@ -5,7 +5,26 @@ import mysql.connector
 
 
 class link_manager:
+    """
+    A class to extract information from pages and get links for the crawler
 
+    Atributes
+    ---------
+
+    url: The url to inspect
+    domain: the domain of the url
+    html_code: the html of the url
+    links_list: A list of links
+
+    Methods
+    -------
+
+    get_html_code: Gets the html of an url}
+    get_all_links: gets all the links of a given url
+    discard_internal_links: deletes internal links from list
+    get_domain: Gets the domain of the url
+    convert_domain_links: adds the domain to links from the same site.
+    """
     def __init__(self,url):
         self.url=url
         self.domain=''
@@ -81,7 +100,7 @@ class database_manager:
             password=dbpassword,
             database = dbname,
             charset = dbcharset)
-        #print (self.db_connection)
+        
 
     """
     Executes an SQL query
@@ -102,16 +121,25 @@ class database_manager:
             site_existence_verification = self.execute_query("select count(*) from sites where site_url='"+links[i]+"'")
             if site_existence_verification[0][0]==0:
                 self.execute_query("insert into sites (site_url,used) values ('"+links[i]+"',false)",False,True)
-    
 
+    def mark_site_as_used(self,link):
+        print("here the site will be marked")
 
-lm = link_manager('https://github.com/Draculinio')
-lm.get_domain()
-lm.get_html_code()
-lm.get_all_links()
-lm.discard_internal_links()
-lm.convert_domain_links()
+class crawler:
+    def __init__(self,url):
+        self.url = url
 
-dm = database_manager()
-dm.connector('localhost','generic_user','generic_password','multicrawler')
-dm.insert_sites(lm.links_list)
+    def crawl(self):
+        lm = link_manager(self.url)
+        lm.get_domain()
+        lm.get_html_code()
+        lm.get_all_links()
+        lm.discard_internal_links()
+        lm.convert_domain_links()
+
+        dm = database_manager()
+        dm.connector('localhost','generic_user','generic_password','multicrawler')
+        dm.insert_sites(lm.links_list)
+
+crawl = crawler('https://infobae.com/')
+crawl.crawl()
