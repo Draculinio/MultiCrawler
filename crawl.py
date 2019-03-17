@@ -56,6 +56,19 @@ class link_manager:
                     print("Found link: "+self.links_list[-1])
             except:
                 print("Non Type found")
+
+    """
+    Used to discard non types
+    """
+    def discard_non_type(self):
+        new_link = []
+        counter=0
+        for link in self.links_list:
+            if link is not None:
+                new_link.append(link)
+                counter=counter +1
+        self.links_list = new_link
+        print(counter)
         
     """
     Discards elements that start with # (internal links or anchors)
@@ -63,8 +76,8 @@ class link_manager:
     def discard_internal_links(self,verbose=False):
         if verbose:
             print("Discarding internal links")
-        for i in range(0,len(self.links_list)-1):
-            link = self.links_list[i]
+        for link in self.links_list:
+            #link = self.links_list[i]
             try:
                 if link[0]=='#':
                     if verbose==True:
@@ -131,10 +144,10 @@ class database_manager:
     Inserts sites into table if needed.
     """
     def insert_sites(self,links):
-        for i in range(0,len(links)-1):
-            site_existence_verification = self.execute_query("select count(*) from sites where site_url='"+links[i]+"'")
+        for link in links:
+            site_existence_verification = self.execute_query("select count(*) from sites where site_url='"+link+"'")
             if site_existence_verification[0][0]==0:
-                self.execute_query("insert into sites (site_url,used) values ('"+links[i]+"',false)",False,True)
+                self.execute_query("insert into sites (site_url,used) values ('"+link+"',false)",False,True)
 
     def mark_site_as_used(self,link):
         print("here the site will be marked")
@@ -143,12 +156,13 @@ class crawler:
     def __init__(self,url,verbose):
         self.url = url
         self.verbose=verbose
+
     def crawl(self):
-                              
         lm = link_manager(self.url)
         lm.get_domain()
         lm.get_html_code(False)
         lm.get_all_links(self.verbose)
+        lm.discard_non_type()
         lm.discard_internal_links(self.verbose)
         lm.convert_domain_links(self.verbose)
 
@@ -156,5 +170,5 @@ class crawler:
         dm.connector('localhost','generic_user','generic_password','multicrawler')
         dm.insert_sites(lm.links_list)
 
-crawl = crawler('https://clarin.com/',True)
+crawl = crawler('https://clarin.com/',False)
 crawl.crawl()
