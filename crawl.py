@@ -37,26 +37,38 @@ class link_manager:
     def get_html_code(self,verbose=False):
         self.html_code=BeautifulSoup(requests.get(self.url).content,features="html.parser")
         if verbose==True:
+            print("Code found: ")
             print(self.html_code)
         
 
     """
     Gets all the links from the sourcecode of a site.
     """
-    def get_all_links(self):
+    def get_all_links(self,verbose=False):
+        if verbose:
+            print("Getting all links")
         self.links_list=[]
         links = self.html_code.findAll("a")
         for link in links:
-            self.links_list.append(link.get('href'))
+            try:
+                self.links_list.append(link.get('href'))
+                if verbose==True:
+                    print("Found link: "+self.links_list[-1])
+            except:
+                print("Non Type found")
         
     """
     Discards elements that start with # (internal links or anchors)
     """
-    def discard_internal_links(self):
+    def discard_internal_links(self,verbose=False):
+        if verbose:
+            print("Discarding internal links")
         for i in range(0,len(self.links_list)-1):
             link = self.links_list[i]
             try:
                 if link[0]=='#':
+                    if verbose==True:
+                        print("Link: "+self.links_list[i]+" is internal, it will be deleted")
                     del self.links_list[i]
             except:
                 print('Didnt find a value for zero char')
@@ -73,12 +85,14 @@ class link_manager:
     """
     Adds domain to links that start with /
     """
-    def convert_domain_links(self):
+    def convert_domain_links(self,verbose=False):
         for i in range(0,len(self.links_list)-1):
             link = self.links_list[i]
             try:
                 if link[0]=='/':
                     self.links_list[i]=self.domain+link
+                    if verbose==True:
+                        print("Link converted to "+self.links_list[i])
             except:
                 print('Didnt find a value for zero char')
                 #TODO: Why are those appearing?????
@@ -126,20 +140,21 @@ class database_manager:
         print("here the site will be marked")
 
 class crawler:
-    def __init__(self,url):
+    def __init__(self,url,verbose):
         self.url = url
-
+        self.verbose=verbose
     def crawl(self):
+                              
         lm = link_manager(self.url)
         lm.get_domain()
-        lm.get_html_code()
-        lm.get_all_links()
-        lm.discard_internal_links()
-        lm.convert_domain_links()
+        lm.get_html_code(False)
+        lm.get_all_links(self.verbose)
+        lm.discard_internal_links(self.verbose)
+        lm.convert_domain_links(self.verbose)
 
         dm = database_manager()
         dm.connector('localhost','generic_user','generic_password','multicrawler')
         dm.insert_sites(lm.links_list)
 
-crawl = crawler('https://infobae.com/')
+crawl = crawler('https://clarin.com/',True)
 crawl.crawl()
