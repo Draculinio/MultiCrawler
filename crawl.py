@@ -60,7 +60,6 @@ class link_manager:
                 self.links_list.append(link.get('href'))
                 if verbose==True:
                     print("Found link: "+self.links_list[-1])
-                    print("First char: "+self.links_list[-1][0])
             except:
                 print("Non Type found")
 
@@ -95,6 +94,21 @@ class link_manager:
                 print('Didnt find a value for zero char')
                 
         self.links_list = new_link
+
+    def discard_invalid_links(self,verbose=False):
+        new_link = []
+        if verbose:
+            print("Discarding internal links")
+        for link in self.links_list:
+            try:
+                if 'http' in link:
+                    new_link.append(link)
+                else:
+                    if verbose==True:
+                        print("Link: "+link+" is not a valid link, it will be deleted")
+            except:
+                print('Didnt find a value for zero char')
+        self.links_list = new_link
         
     """
     Gets the domain
@@ -124,8 +138,10 @@ class link_manager:
     Prints the actual list of links
     """
     def print_list_links(self):
+        print("--------------------LIST OF LINKS FOUND--------------------------")
         for link in self.links_list:
             print(link)
+        print("------------------END OF LIST OF LINKS FOUND---------------------")
                 
 class database_manager:
 
@@ -158,21 +174,30 @@ class database_manager:
     """
     Inserts sites into table if needed.
     """
-    def insert_sites(self,links,title):
+    def insert_sites(self,links):
         for link in links:
             site_existence_verification = self.execute_query("select count(*) from sites where site_url='"+link+"'")
             if site_existence_verification[0][0]==0:
-                self.execute_query("insert into sites (site_url,used,title) values ('"+link+"',false,'"+title+"')",False,True)
+                self.execute_query("insert into sites (site_url,used) values ('"+link+"',false)",False,True)
 
     """Marks a site as used, so it won't go again there"""
     def mark_site_as_used(self,link):
         print("here the site will be marked")
 
+    def add_title(self,link,title):
+        try:
+            self.execute_query("update sites set title = '"+title+"' where site_url='"+link+"'",False,True)
+        except Exception as e:
+            print(str(e))
+
     def get_site(self):
-        return self.execute_query("select site_url from sites where used='False' order by site_id asc Limit 1")[0][0]
+        return self.execute_query("select site_url from sites where used=0 order by site_id asc Limit 1")[0][0]
 
     def mark_site(self,link):
-        print("needs an update here")
+        try:
+            self.execute_query("update sites set used = 1 where site_url='"+link+"'",False,True)
+        except Exception as e:
+            print(str(e))
 
 class crawler:
     def __init__(self,url,verbose):
@@ -190,12 +215,15 @@ class crawler:
             lm.discard_non_type()
             lm.discard_internal_links(self.verbose)
             lm.convert_domain_links(True)
+            lm.discard_invalid_links(True)
             lm.print_list_links()
         
         
             dm.connector('localhost','generic_user','generic_password','multicrawler')
-            dm.insert_sites(lm.links_list,lm.title)
-            self.url=get_site()
+            dm.insert_sites(lm.links_list)
+            dm.add_title(lm.url,lm.title)
+            dm.mark_site(lm.url)
+            self.url=dm.get_site()
 
 crawl = crawler('https://www.crummy.com/software/BeautifulSoup/',False)
 crawl.crawl()
