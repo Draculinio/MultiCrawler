@@ -2,7 +2,8 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import mysql.connector
-
+import logging
+import dattetime
 
 class link_manager:
     """
@@ -40,28 +41,27 @@ class link_manager:
         self.html_code=BeautifulSoup(requests.get(self.url).content,features="html.parser")
         self.title = self.html_code.title.string
         if verbose==True:
-            print("Code found: ")
-            print(self.html_code)
-            print("Page Title")
-            print(self.title)
+            log =logger()
+            log.log('Code found! on site '+self.url,'info')
+            log.log("Page Title: "+self.title,'info')
+            
 
-  
-        
     """
     Gets all the links from the sourcecode of a site.
     """
     def get_all_links(self,verbose=False):
+        log=logger()
         if verbose:
-            print("Getting all links")
+            log.log('Getting all the links for '+self.url,'info')
         self.links_list=[]
         links = self.html_code.findAll("a")
         for link in links:
             try:
                 self.links_list.append(link.get('href'))
                 if verbose==True:
-                    print("Found link: "+self.links_list[-1])
+                    log.log("Found link: "+self.links_list[-1],'info')
             except:
-                print("Non Type found")
+                log.log("Non Type found",'warning')
 
     """
     Used to discard non types
@@ -80,34 +80,36 @@ class link_manager:
     Discards elements that start with # (internal links or anchors)
     """
     def discard_internal_links(self,verbose=False):
+        log = logger()
         new_link = []
         if verbose:
-            print("Discarding internal links")
+            log.log("Discarding internal links",'info')
         for link in self.links_list:
             try:
                 if link[0]!='#':
                     new_link.append(link)
                 else:
                     if verbose==True:
-                        print("Link: "+self.links_list[i]+" is internal, it will be deleted")
+                        log.log("Link: "+self.links_list[i]+" is internal, it will be deleted",'info')
             except:
-                print('Didnt find a value for zero char')
+                log.log('Didnt find a value for zero char','info')
                 
         self.links_list = new_link
 
     def discard_invalid_links(self,verbose=False):
         new_link = []
+        log =logger()
         if verbose:
-            print("Discarding internal links")
+            log.log('Discarding internal links','info')
         for link in self.links_list:
             try:
                 if 'http' in link:
                     new_link.append(link)
                 else:
                     if verbose==True:
-                        print("Link: "+link+" is not a valid link, it will be deleted")
+                        log.log("Link: "+link+" is not a valid link, it will be deleted",'info')
             except:
-                print('Didnt find a value for zero char')
+                log.log('Didnt find a value for zero char','warning')
         self.links_list = new_link
         
     """
@@ -115,24 +117,26 @@ class link_manager:
     This is useful for links that goes inside the site.
     """
     def get_domain(self,verbose=False):
+        log=logger()
         self.domain = urlparse(self.url)
         self.domain = self.domain.scheme + '://'+self.domain.netloc
         if verbose:
-            print("domain: "+self.domain)
+            log.log("domain: "+self.domain,'info')
         
     """
     Adds domain to links that start with /
     """
     def convert_domain_links(self,verbose=False):
+        log=logger()
         for link in self.links_list:
             try:
                 
                 if link[0]=='/':
                     link=self.domain+link
                     if verbose==True:
-                        print("Link converted to "+link)
+                        log.log("Link converted to "+link,'info')
             except:
-                print('Didnt find a value for zero char')
+                log.log('Didnt find a value for zero char','warning')
 
     """
     Prints the actual list of links
@@ -199,6 +203,23 @@ class database_manager:
         except Exception as e:
             print(str(e))
 
+class logger:
+    def __init__(self):
+        self.log_file='crawlerlog.log'
+        logging.basicConfig(filename=self.log_file,level=logging.DEBUG)
+
+    def log(self,level,text):
+        text = str(datetime.datetime.now())+' :> '+text
+        if level== 'info':
+            logger.info(text)
+        if level =='warning':
+            logger.warning(text)
+        if level=='error':
+            logger.error(text)
+        if level=='critical':
+            logger.critical(text)
+    
+        
 class crawler:
     def __init__(self,url,verbose):
         self.url = url
