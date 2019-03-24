@@ -3,7 +3,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import mysql.connector
 import logging
-import dattetime
+import datetime
 
 class link_manager:
     """
@@ -33,35 +33,36 @@ class link_manager:
         self.html_code=''
         self.links_list = []
         self.title = ''
+        self.log =logger()
         
     """
     Gets the HTML code of a URL
     """
     def get_html_code(self,verbose=False):
-        self.html_code=BeautifulSoup(requests.get(self.url).content,features="html.parser")
-        self.title = self.html_code.title.string
-        if verbose==True:
-            log =logger()
-            log.log('Code found! on site '+self.url,'info')
-            log.log("Page Title: "+self.title,'info')
-            
+        try:
+            self.html_code=BeautifulSoup(requests.get(self.url).content,features="html.parser")
+            self.title = self.html_code.title.string
+            if verbose==True:
+                self.log.log('Code found! on site '+self.url,'info')
+                self.log.log("Page Title: "+self.title,'info')
+        except Exception as e:
+            self.log.log('Error found: '+str(e),'error')    
 
     """
     Gets all the links from the sourcecode of a site.
     """
     def get_all_links(self,verbose=False):
-        log=logger()
         if verbose:
-            log.log('Getting all the links for '+self.url,'info')
+            self.log.log('Getting all the links for '+self.url,'info')
         self.links_list=[]
         links = self.html_code.findAll("a")
         for link in links:
             try:
                 self.links_list.append(link.get('href'))
                 if verbose==True:
-                    log.log("Found link: "+self.links_list[-1],'info')
+                    self.log.log("Found link: "+self.links_list[-1],'info')
             except:
-                log.log("Non Type found",'warning')
+                self.log.log("Non Type found",'warning')
 
     """
     Used to discard non types
@@ -195,10 +196,14 @@ class database_manager:
             print(str(e))
 
     def get_site(self):
-        return self.execute_query("select site_url from sites where used=0 order by site_id asc Limit 1")[0][0]
+        print("AAAAAAAAAA")
+        site =  self.execute_query("select site_url from sites where used=0 order by site_id asc Limit 1")[0][0]
+        print(site)
+        return site
 
     def mark_site(self,link):
         try:
+            print("Link to mark: "+link)
             self.execute_query("update sites set used = 1 where site_url='"+link+"'",False,True)
         except Exception as e:
             print(str(e))
@@ -226,11 +231,12 @@ class crawler:
         self.verbose=False
 
     def crawl(self):
+        dm = database_manager()
+        lm = link_manager(self.url)
         while True:
-            dm = database_manager()
-            lm = link_manager(self.url)
-        
+            print("Getting domain...")
             lm.get_domain(self.verbose)
+            print("Domain retrieved... "+lm.domain)
             lm.get_html_code(False)
             lm.get_all_links(True)
             lm.discard_non_type()
@@ -239,12 +245,12 @@ class crawler:
             lm.discard_invalid_links(True)
             lm.print_list_links()
         
-        
             dm.connector('localhost','generic_user','generic_password','multicrawler')
             dm.insert_sites(lm.links_list)
             dm.add_title(lm.url,lm.title)
             dm.mark_site(lm.url)
             self.url=dm.get_site()
+            lm.url = self.url
 
 crawl = crawler('https://www.crummy.com/software/BeautifulSoup/',False)
 crawl.crawl()
