@@ -35,6 +35,7 @@ class link_manager:
         self.links_list = []
         self.title = ''
         self.log =logger()
+        self.page_text = ''
         
     """
     Gets the HTML code of a URL
@@ -82,25 +83,23 @@ class link_manager:
     Discards elements that start with # (internal links or anchors)
     """
     def discard_internal_links(self,verbose=False):
-        log = logger()
         new_link = []
         if verbose:
-            log.log("Discarding internal links",'info')
+            self.log.log("Discarding internal links",'info')
         for link in self.links_list:
             try:
                 if link[0]!='#':
                     new_link.append(link)
                 else:
                     if verbose==True:
-                        log.log("Link: "+self.links_list[i]+" is internal, it will be deleted",'info')
+                        self.log.log("Link: "+self.links_list[i]+" is internal, it will be deleted",'info')
             except:
-                log.log('Didnt find a value for zero char','info')
+                self.log.log('Didnt find a value for zero char','info')
                 
         self.links_list = new_link
 
     def discard_invalid_links(self,verbose=False):
         new_link = []
-        log =logger()
         if verbose:
             log.log('Discarding internal links','info')
         for link in self.links_list:
@@ -109,9 +108,9 @@ class link_manager:
                     new_link.append(link)
                 else:
                     if verbose==True:
-                        log.log("Link: "+link+" is not a valid link, it will be deleted",'info')
+                        self.log.log("Link: "+link+" is not a valid link, it will be deleted",'info')
             except:
-                log.log('Didnt find a value for zero char','warning')
+                self.log.log('Didnt find a value for zero char','warning')
         self.links_list = new_link
         
     """
@@ -119,26 +118,39 @@ class link_manager:
     This is useful for links that goes inside the site.
     """
     def get_domain(self,verbose=False):
-        log=logger()
         self.domain = urlparse(self.url)
         self.domain = self.domain.scheme + '://'+self.domain.netloc
         if verbose:
-            log.log("domain: "+self.domain,'info')
+            self.log.log("domain: "+self.domain,'info')
         
     """
     Adds domain to links that start with /
     """
     def convert_domain_links(self,verbose=False):
-        log=logger()
         for link in self.links_list:
             try:
                 
                 if link[0]=='/':
                     link=self.domain+link
                     if verbose==True:
-                        log.log("Link converted to "+link,'info')
+                        self.log.log("Link converted to "+link,'info')
             except:
-                log.log('Didnt find a value for zero char','warning')
+                self.log.log('Didnt find a value for zero char','warning')
+
+    """
+    Gets the page text taking all the p tags.
+    """
+    def get_page_text(self,verbose=False):
+        if verbose:
+            self.log.log('Getting all the text for '+self.url,'info')
+        texts=[]
+        texts = self.html_code.findAll("p")
+        for text in texts:
+            try:
+                self.page_text=self.page_text+" "+text
+            except:
+                self.log.log("Non Type found",'warning')
+
 
     """
     Prints the actual list of links
